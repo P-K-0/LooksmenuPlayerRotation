@@ -37,7 +37,7 @@ namespace events {
 		isRegistered = true;
 	}
 
-	EventResult	Dispatcher::ReceiveEvent(TESFurnitureEvent* evn, void* dispatcher)
+	EventResult Dispatcher::ReceiveEvent(TESFurnitureEvent* evn, void* dispatcher)
 	{
 		if (!evn || !evn->actor)
 			return kEvent_Continue;
@@ -52,7 +52,7 @@ namespace events {
 		return kEvent_Continue;
 	}
 
-	EventResult	Dispatcher::ReceiveEvent(MenuOpenCloseEvent* evn, void* dispatcher)
+	EventResult Dispatcher::ReceiveEvent(MenuOpenCloseEvent* evn, void* dispatcher)
 	{ 
 		if (!evn) 
 			return kEvent_Continue;
