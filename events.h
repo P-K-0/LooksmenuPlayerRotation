@@ -16,8 +16,8 @@ namespace events {
 
 		static void Register();
 
-		EventResult	ReceiveEvent(TESFurnitureEvent* evn, void* dispatcher);
-		EventResult	ReceiveEvent(MenuOpenCloseEvent* evn, void* dispatcher);
+		EventResult ReceiveEvent(TESFurnitureEvent* evn, void* dispatcher);
+		EventResult ReceiveEvent(MenuOpenCloseEvent* evn, void* dispatcher);
 
 		virtual void OnCursorMoveEvent(CursorMoveEvent* inputEvent);
 		virtual void OnButtonEvent(ButtonEvent* inputEvent);
