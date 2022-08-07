@@ -10,6 +10,8 @@
 
 #include "f4se/PluginAPI.h"
 
+#include "f4se/ObScript.h"
+
 #include "f4se/GameAPI.h"
 #include "f4se/GameSettings.h"
 #include "f4se/GameCamera.h"
