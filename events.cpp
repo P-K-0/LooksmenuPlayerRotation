@@ -421,8 +421,6 @@ namespace events {
 		return true;
 	}
 
-	ObScript_Execute Dispatcher::ShowLooksMenuOld{ nullptr };
-
 	Dispatcher Dispatcher::instance;
 
 	Dispatcher::InfoLooksMenu Dispatcher::infoLM;
