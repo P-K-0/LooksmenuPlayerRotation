@@ -79,8 +79,6 @@ namespace events {
 
 		bool HookShowRaceMenu();
 
-		static ObScript_Execute ShowLooksMenuOld;
-
 		static Dispatcher instance;
 
 		struct InfoLooksMenu {
