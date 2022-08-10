@@ -41,5 +41,6 @@ namespace f4se {
 
 		F4SEMessagingInterface* f4se_msg_interface{ nullptr };
 		F4SETaskInterface* f4se_task_interface{ nullptr };
+		F4SEPapyrusInterface* f4se_papyrus_interface{ nullptr };
 	};
 }

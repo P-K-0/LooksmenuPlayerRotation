@@ -15,6 +15,10 @@ namespace Settings {
 			fSensivity = std::stof(ini.GetValue("Main", "fSensivity", "0.1"));
 			bLockCamera = std::stoi(ini.GetValue("Main", "bLockCamera", "0"));
 			bReposCharacter = std::stoi(ini.GetValue("Main", "bReposCharacter", "1"));
+			bNoSurgeryRepos = std::stoi(ini.GetValue("Main", "bNoSurgeryRepos", "1"));
+			
+			bDisabledInNewGame = std::stoi(ini.GetValue("Patches", "bDisabledInNewGame", "1"));
+			bCheckApplyCameraNodeAnimations = std::stoi(ini.GetValue("Patches", "bCheckApplyCameraNodeAnimations", "1"));
 
 			iKeyRotate = std::stoi(ini.GetValue("Keys", "iKeyRotate", "1"));
 			iKeyLeftRight = std::stoi(ini.GetValue("Keys", "iKeyLeftRight", "0"));

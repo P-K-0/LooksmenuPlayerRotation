@@ -41,6 +41,13 @@ namespace f4se {
 			return false;
 		}
 
+		if (!(f4se_papyrus_interface = static_cast<F4SEPapyrusInterface*>(f4se->QueryInterface(kInterface_Papyrus)))) {
+
+			_ERROR("Papyrus interface error!");
+
+			return false;
+		}
+
 		return true;
 	}
 
@@ -56,10 +63,16 @@ namespace f4se {
 	{
 		switch (msg->type) {
 
+		case F4SEMessagingInterface::kMessage_NewGame:
+
+			events::Dispatcher::GetInstance().SetNewGame(true);
+
+			break;
+
 		case F4SEMessagingInterface::kMessage_GameLoaded:
 
 			Settings::Ini::GetInstance().ReadSettings();
-			events::Dispatcher::Register();
+			events::Dispatcher::GetInstance().Register();
 
 			break;
 		}

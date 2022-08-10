@@ -15,7 +15,9 @@ namespace Settings {
 		[[nodiscard]] const float GetSensivity() const { return fSensivity; }
 		[[nodiscard]] const bool GetLockCamera() const { return bLockCamera; }
 		[[nodiscard]] const bool GetReposCharacter() const { return bReposCharacter; }
-
+		[[nodiscard]] const bool GetNoSurgeryRepos() const { return bNoSurgeryRepos; }
+		[[nodiscard]] const bool GetDisabledInNewGame() const { return bDisabledInNewGame; }
+		[[nodiscard]] const bool GetCheckApplyCameraNodeAnimations() const { return bCheckApplyCameraNodeAnimations; }
 		[[nodiscard]] const std::uint32_t GetKeyRotate() const { return iKeyRotate; }
 		[[nodiscard]] const std::uint32_t GetKeyLeftRight() const { return iKeyLeftRight; }
 		[[nodiscard]] const std::uint32_t GetKeyUpDown() const { return iKeyUpDown; }
@@ -24,7 +26,7 @@ namespace Settings {
 	private:
 
 		Ini() {}
-		~Ini(){}
+		~Ini() {}
 
 		Ini(const Ini&) = delete;
 		Ini(Ini&&) = delete;
@@ -34,11 +36,14 @@ namespace Settings {
 
 		float fSensivity{ 0.1f };
 
-		bool bLockCamera{ false };
+		bool bLockCamera{ true };
 		bool bReposCharacter{ true };
+		bool bNoSurgeryRepos{ true };
+		bool bDisabledInNewGame{ true };
+		bool bCheckApplyCameraNodeAnimations{ true };
 
 		std::uint32_t iKeyRotate{ 1 };
-		std::uint32_t iKeyLeftRight{ 0 };
+		std::uint32_t iKeyLeftRight{ 2 };
 		std::uint32_t iKeyUpDown{ 2 };
 		std::uint32_t iKeyZoom{ 160 };
 

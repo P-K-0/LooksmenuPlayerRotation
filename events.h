@@ -8,20 +8,38 @@
 
 namespace events {
 
+	using _ShowRaceMenu = void (*)(TESObjectREFR* akMenuTarget, SInt32 uiMode, TESObjectREFR* akMenuSpouseFemale, TESObjectREFR* akMenuSpouseMale, TESObjectREFR* akVendor);
+
+	static RelocAddr<_ShowRaceMenu> ShowRaceMenu(0xB42C40);
+
 	static RelocPtr<std::uint8_t> CollisiontState(0x058D08B0);
+
+	static _ShowRaceMenu ShowRaceMenuOriginal{ nullptr };
 
 	const double Pi = std::acos(-1);
 
+	enum class UiMode {
+
+		StartOfGame = 0,
+		Remake,
+		HairCut,
+		PlasticSurgery,
+		FacePaint
+
+	};
+
 	class Dispatcher :
-		public BSTEventSink<TESFurnitureEvent>,
 		public BSTEventSink<MenuOpenCloseEvent>,
 		public PlayerInputHandler {
 
 	public:
 
-		static void Register();
+		static Dispatcher& GetInstance() { return instance; }
 
-		EventResult ReceiveEvent(TESFurnitureEvent* evn, void* dispatcher);
+		void Register();
+
+		void SetNewGame(bool newGame) { isNewGame = newGame; }
+
 		EventResult ReceiveEvent(MenuOpenCloseEvent* evn, void* dispatcher);
 
 		virtual void OnCursorMoveEvent(CursorMoveEvent* inputEvent);
@@ -39,29 +57,39 @@ namespace events {
 		Dispatcher() {}
 		~Dispatcher() {}
 
-
 		void EnableCamera(bool enabled);
-		[[nodiscard]] const float GetCameraAngle() const;
+		bool IsCameraEnabled();
+
+		[[nodiscard]] const float GetCameraAngle();
 		[[nodiscard]] const NiPoint3 GetCameraPos() const;
 
 		void SetCollision(bool enabled) { *CollisiontState = enabled ? 0 : 1; }
 
-		[[nodiscard]] Actor& GetCharacter() { return *lmActor; }
-		[[nodiscard]] const bool IsPlayer(Actor* actor) const { return actor == (*g_player); }
+		[[nodiscard]] Actor& GetCharacter() { return *infoLM.actor; }
+		[[nodiscard]] const UiMode& GetUIMode() const { return infoLM.mode; }
+
+		[[nodiscard]] const bool IsPlayer() const;
 
 		void ReposCharacter();
 		void UpdateCharacter();
 
-		void ParseCmdLine();
+		bool IsApplyCameraNodeAnimations();
 
-		static bool HookShowLooksMenu();
-		static bool ShowLooksMenuNew(void* paramInfo, void* scriptData, TESObjectREFR* thisObj, void* containingObj, Script* scriptObj, void* locals, double* result, void* opcodeOffsetPtr);
-		
+		static void ShowRaceMenuHook(TESObjectREFR* akMenuTarget, SInt32 uiMode, TESObjectREFR* akMenuSpouseFemale, TESObjectREFR* akMenuSpouseMale, TESObjectREFR* akVendor);
+
+		bool HookShowRaceMenu();
+
 		static ObScript_Execute ShowLooksMenuOld;
 
-		static std::string cmdLine;
+		static Dispatcher instance;
 
-		Actor* lmActor{ nullptr };
+		struct InfoLooksMenu {
+
+			Actor* actor;
+			UiMode mode;
+		};
+
+		static InfoLooksMenu infoLM;
 
 		bool enableRotation{};
 		bool enableLeftRight{};
@@ -71,11 +99,18 @@ namespace events {
 		bool joySwitch{};
 
 		bool isLMOpened{};
+		bool isNewGame{};
+
 		bool reposChar{};
 
 		POINT prevPos{};
 
 		NiPoint3 rot{};
 		NiPoint3 pos{};
+
+		NiPoint3 cameraPos{};
+		float cameraAngle{};
+
+		void* g_moduleHandle{ nullptr };
 	};
 }

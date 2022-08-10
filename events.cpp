@@ -8,8 +8,6 @@ namespace events {
 		static bool isRegistered{};
 	
 		if (isRegistered) return;
-
-		static Dispatcher instance;
 		
 		auto playerCtrl = (*g_playerControls);
 
@@ -24,71 +22,20 @@ namespace events {
 
 		(*g_ui)->menuOpenCloseEventSource.AddEventSink(&instance);
 
-		GetEventDispatcher<TESFurnitureEvent>()->AddEventSink(&instance);
-
-		HookShowLooksMenu();
+		HookShowRaceMenu();
 
 		_DMESSAGE("Events registered successfully!");
 
 		isRegistered = true;
 	}
 
-	EventResult Dispatcher::ReceiveEvent(TESFurnitureEvent* evn, void* dispatcher)
-	{
-		if (!evn || !evn->actor)
-			return kEvent_Continue;
-
-		//if (isLMOpened && evn->actor == lmActor) {
-
-		//	GetCharacter().rot = rot;
-		//	GetCharacter().pos = pos;
-
-		//	EnableCamera(true);
-		//}
-
-		return kEvent_Continue;
-	}
-
-	EventResult Dispatcher::ReceiveEvent(MenuOpenCloseEvent* evn, void* dispatcher)
-	{ 
-		if (!evn) 
-			return kEvent_Continue;
-
-		if (evn->menuName == "LooksMenu") {
-
-			isLMOpened = evn->isOpen;
-
-			if (isLMOpened) {
-
-				ParseCmdLine();
-
-				rot = GetCharacter().rot;
-				pos = GetCharacter().pos;
-
-				reposChar = Settings::Ini::GetInstance().GetReposCharacter();
-
-				EnableCamera(false);
-				SetCollision(false);
-			}
-			else {
-
-				GetCharacter().rot = rot;
-				GetCharacter().pos = pos;
-
-				EnableCamera(true);
-				SetCollision(true);
-
-				UpdateCharacter();
-			}
-		}
-
-		return kEvent_Continue; 
-	}
-
 	void Dispatcher::OnCursorMoveEvent(CursorMoveEvent* inputEvent)
 	{
-		if (!inputEvent || !isLMOpened)
+		if (!inputEvent || isNewGame || !isLMOpened)
 			return;
+
+		if (IsCameraEnabled())
+			EnableCamera(false);
 
 		ReposCharacter();
 
@@ -114,17 +61,17 @@ namespace events {
 
 		if (enableLeftRight) {
 
-			auto cameraAngle = GetCameraAngle() + Pi / 2;
+			auto angle = cameraAngle + Pi / 2;
 
 			if (deltaX > 2) {
 
-				GetCharacter().pos.x += std::sin(cameraAngle);
-				GetCharacter().pos.y += std::cos(cameraAngle);
+				GetCharacter().pos.x += std::sin(angle);
+				GetCharacter().pos.y += std::cos(angle);
 			}
 			else if (deltaX < -2) {
 
-				GetCharacter().pos.x -= std::sin(cameraAngle);
-				GetCharacter().pos.y -= std::cos(cameraAngle);
+				GetCharacter().pos.x -= std::sin(angle);
+				GetCharacter().pos.y -= std::cos(angle);
 			}
 		}
 
@@ -145,13 +92,15 @@ namespace events {
 
 	void Dispatcher::OnThumbstickEvent(ThumbstickEvent* inputEvent)
 	{
-		if (!inputEvent || !isLMOpened)
+		if (!inputEvent || isNewGame || !isLMOpened)
 			return;
+
+		if (IsCameraEnabled())
+			EnableCamera(false);
 
 		ReposCharacter();
 
 		float fSensivity = Settings::Ini::GetInstance().GetSensivity();
-		auto cameraAngle = GetCameraAngle();
 
 		std::uint32_t posThumbStick = inputEvent->unk20[5];
 
@@ -188,20 +137,20 @@ namespace events {
 		}
 		else {
 
-			cameraAngle += Pi / 2;
+			auto angle = cameraAngle + Pi / 2;
 
 			switch (posThumbStick) {
 
 			case 2:
 
-				GetCharacter().pos.x += std::sin(cameraAngle);
-				GetCharacter().pos.y += std::cos(cameraAngle);
+				GetCharacter().pos.x += std::sin(angle);
+				GetCharacter().pos.y += std::cos(angle);
 				break;
 
 			case 4:
 
-				GetCharacter().pos.x -= std::sin(cameraAngle);
-				GetCharacter().pos.y -= std::cos(cameraAngle);
+				GetCharacter().pos.x -= std::sin(angle);
+				GetCharacter().pos.y -= std::cos(angle);
 				break;
 
 			case 1:
@@ -222,8 +171,11 @@ namespace events {
 
 	void Dispatcher::OnButtonEvent(ButtonEvent* inputEvent)
 	{
-		if (!inputEvent || !isLMOpened)
+		if (!inputEvent || isNewGame || !isLMOpened)
 			return;
+
+		if (IsCameraEnabled())
+			EnableCamera(false);
 
 		ReposCharacter();
 		
@@ -239,8 +191,6 @@ namespace events {
 		if (inputEvent->deviceType == ButtonEvent::kDeviceType_Mouse ||
 			inputEvent->deviceType == ButtonEvent::kDeviceType_Keyboard) {
 
-			auto cameraAngle = GetCameraAngle();
-
 			switch (keyCode) {
 
 			case 2048: // mouse wheel up
@@ -249,8 +199,6 @@ namespace events {
 
 					GetCharacter().pos.x += std::sin(cameraAngle);
 					GetCharacter().pos.y += std::cos(cameraAngle);
-
-					UpdateCharacter();
 				}
 
 				break;
@@ -261,8 +209,6 @@ namespace events {
 
 					GetCharacter().pos.x -= std::sin(cameraAngle);
 					GetCharacter().pos.y -= std::cos(cameraAngle);
-
-					UpdateCharacter();
 				}
 
 				break;
@@ -286,27 +232,58 @@ namespace events {
 				break;
 			}
 		}
+
+		UpdateCharacter();
+	}
+
+	const bool Dispatcher::IsPlayer() const
+	{
+		if (infoLM.actor && (*g_player))
+			return infoLM.actor == (*g_player);
+
+		return false;
 	}
 
 	void Dispatcher::ReposCharacter()
 	{
-		if (reposChar) {
+		if (!reposChar)
+			return;
 
-			auto cameraPos = GetCameraPos();
-			auto cameraAngle = GetCameraAngle();
+		auto& settings = Settings::Ini::GetInstance();
 
-			GetCharacter().rot.z = cameraAngle + Pi;
-			GetCharacter().pos.x = cameraPos.x + 100.0f * std::sin(cameraAngle);
-			GetCharacter().pos.y = cameraPos.y + 100.0f * std::cos(cameraAngle);
+		if (!settings.GetReposCharacter())
+			return;
 
-			reposChar = false;
-		}
+		if (GetUIMode() >= UiMode::HairCut && settings.GetNoSurgeryRepos())
+			return;
+
+		GetCharacter().rot.z = cameraAngle + Pi;
+		GetCharacter().pos.x = cameraPos.x + 100.0f * std::sin(cameraAngle);
+		GetCharacter().pos.y = cameraPos.y + 100.0f * std::cos(cameraAngle);
+
+		UpdateCharacter();
+
+		reposChar = false;
 	}
 
 	void Dispatcher::UpdateCharacter()
 	{
-		if (lmActor && lmActor->middleProcess)
-			CALL_MEMBER_FN(lmActor->middleProcess, UpdateEquipment)(lmActor, 0x11);
+		auto actor = infoLM.actor;
+
+		if (actor && actor->middleProcess)
+			CALL_MEMBER_FN(actor->middleProcess, UpdateEquipment)(actor, 0x11);
+	}
+
+	bool Dispatcher::IsApplyCameraNodeAnimations()
+	{
+		Setting* stg = GetINISetting("bApplyCameraNodeAnimations:Camera");
+
+		double isApply{ false };
+
+		if (stg && stg->GetDouble(&isApply) && isApply && Settings::Ini::GetInstance().GetCheckApplyCameraNodeAnimations())
+			return true;
+
+		return false;
 	}
 
 	void Dispatcher::EnableCamera(bool enabled)
@@ -320,75 +297,133 @@ namespace events {
 		}
 	}
 
-	const float Dispatcher::GetCameraAngle() const
+	bool Dispatcher::IsCameraEnabled()
 	{
 		auto camera = (*g_playerCamera);
+
+		if (camera)
+			return camera->unk30 != 0;
+
+		return false;
+	}
+
+	const float Dispatcher::GetCameraAngle()
+	{
+		auto camera = (*g_playerCamera);
+
+		if (GetUIMode() >= UiMode::HairCut && IsPlayer())
+			return rot.z + (IsApplyCameraNodeAnimations() ? Pi : 0);
+
 		return camera ? camera->unk194 : 0.0f;
 	}
 
 	const NiPoint3 Dispatcher::GetCameraPos() const 
 	{
 		auto camera = (*g_playerCamera);
+
 		return camera && camera->cameraNode ? camera->cameraNode->m_localTransform.pos : NiPoint3();
 	}
 
-	void Dispatcher::ParseCmdLine()
+	EventResult Dispatcher::ReceiveEvent(MenuOpenCloseEvent* evn, void* dispatcher)
 	{
-		TESForm* frm{ nullptr };
+		if (!evn)
+			return kEvent_Continue;
 
-		lmActor = nullptr;
+		if (evn->menuName == "LooksMenu") {
 
-		if (!cmdLine.empty()) {
+			auto& settings = Settings::Ini::GetInstance();
 
-			std::stringstream ss{ cmdLine };
+			isLMOpened = evn->isOpen;
 
-			std::string cmd;
-			std::uint32_t id{ 0 };
+			if (isNewGame && settings.GetDisabledInNewGame()) {
 
-			ss >> cmd >> std::hex >> id;
+				if (!isLMOpened)
+					isNewGame = false;
 
-			if (id != 0)
-				frm = LookupFormByID(id);
-
-			if (frm)
-				lmActor = DYNAMIC_CAST(frm, TESForm, Actor);
-		}
-
-		if (!lmActor)
-			lmActor = (*g_player);
-
-		_DMESSAGE("Selected Character ID: %.8X", lmActor->formID);
-
-		cmdLine.clear();
-	}
-
-	bool Dispatcher::ShowLooksMenuNew(void* paramInfo, void* scriptData, TESObjectREFR* thisObj, void* containingObj, Script* scriptObj, void* locals, double* result, void* opcodeOffsetPtr)
-	{
-		cmdLine.clear();
-
-		if (scriptObj)
-			cmdLine = scriptObj->text;
-
-		return ShowLooksMenuOld(paramInfo, scriptData, thisObj, containingObj, scriptObj, locals, result, opcodeOffsetPtr);
-	}
-
-	bool Dispatcher::HookShowLooksMenu()
-	{
-		for (ObScriptCommand* iter = g_firstObScriptCommand; iter->opcode < (kObScript_NumObScriptCommands + kObScript_ScriptOpBase); ++iter)
-			if (_strcmpi(iter->longName, "ShowLooksMenu") == 0) {
-
-				_DMESSAGE("ShowLooksMenu found at address : %016I64X", GetFnAddr(iter->execute));
-
-				ShowLooksMenuOld = iter->execute;
-				iter->execute = ShowLooksMenuNew;
-
-				return true;
+				return kEvent_Continue;
 			}
 
-		return false;
+			if (isLMOpened) {
+
+				reposChar = true;
+
+				rot = GetCharacter().rot;
+				pos = GetCharacter().pos;
+
+				cameraPos = GetCameraPos();
+				cameraAngle = GetCameraAngle();
+
+				SetCollision(false);
+			}
+			else {
+
+				GetCharacter().rot = rot;
+				GetCharacter().pos = pos;
+
+				EnableCamera(true);
+				SetCollision(true);
+
+				UpdateCharacter();
+			}
+		}
+
+		return kEvent_Continue;
+	}
+
+	void Dispatcher::ShowRaceMenuHook(TESObjectREFR* akMenuTarget, SInt32 uiMode, TESObjectREFR* akMenuSpouseFemale, TESObjectREFR* akMenuSpouseMale, TESObjectREFR* akVendor)
+	{
+		infoLM.actor = !akMenuTarget ? (*g_player) : DYNAMIC_CAST(akMenuTarget, TESObjectREFR, Actor);
+
+		if (!infoLM.actor)
+			infoLM.actor = (*g_player);
+
+		infoLM.mode = static_cast<UiMode>(uiMode);
+
+		_DMESSAGE("Selected Character ID: %.8X", infoLM.actor->formID);
+
+		ShowRaceMenuOriginal(akMenuTarget, uiMode, akMenuSpouseFemale, akMenuSpouseMale, akVendor);
+	}
+
+	bool Dispatcher::HookShowRaceMenu()
+	{
+		if (!g_branchTrampoline.Create(1024 * 64))
+			return false;
+
+		if (!g_localTrampoline.Create(1024 * 64, g_moduleHandle))
+			return false;
+
+		struct ShowRaceMenu_Code : Xbyak::CodeGenerator {
+			
+			ShowRaceMenu_Code(void* buf)
+				: Xbyak::CodeGenerator(4096, buf)
+			{
+				Xbyak::Label retnLabel;
+
+				mov(ptr[rsp + 0x18], rbx);
+				push(rdi);
+	
+				jmp(ptr[rip + retnLabel]);
+
+				L(retnLabel);
+
+				dq(ShowRaceMenu.GetUIntPtr() + 6);
+			}
+		};
+
+		void* codebuf = g_localTrampoline.StartAlloc();
+		ShowRaceMenu_Code code(codebuf);
+		g_localTrampoline.EndAlloc(code.getCurr());
+
+		ShowRaceMenuOriginal = (_ShowRaceMenu)codebuf;
+
+		g_branchTrampoline.Write6Branch(ShowRaceMenu.GetUIntPtr(), (std::uintptr_t)ShowRaceMenuHook);
+
+		return true;
 	}
 
 	ObScript_Execute Dispatcher::ShowLooksMenuOld{ nullptr };
 
-	std::string Dispatcher::cmdLine;
+	Dispatcher Dispatcher::instance;
+
+	Dispatcher::InfoLooksMenu Dispatcher::infoLM;
 }
